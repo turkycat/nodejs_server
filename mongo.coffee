@@ -19,17 +19,28 @@ close_database = () ->
 insert_documents = ( docs ) ->
     assert.notEqual root.db, null
     collection = root.db.collection "documents"
-    collection.insertMany docs, ( err, result ) ->
+    cb = ( err, result ) ->
         assert.equal err, null
-        assert.equal docs.length, result.result.n
-        assert.equal docs.length, result.ops.length
-        console.log "inserted #{docs.length} documents into the document collection"
+        #assert.equal docs.length, result.result.n
+        #assert.equal docs.length, result.ops.length
+        console.log "inserted #{result.result.n} documents into the document collection"
+    #if typeof docs.length is "undefined" || docs.length == 1 then collection.insertOne docs, cb else collection.insertMany docs, cb        #doesn't work, insertOne needs to be an object
+    if typeof docs.length is "undefined"
+        collection.insertOne docs, cb
+    else if docs.length == 1
+        collection.insertOne docs[0], cb
+    else if docs.length > 1
+        collection.insertMany docs, cb
+    else
+        console.log "invalid document entry, database not modified"
         
 delete_documents = ( doc ) ->
     assert.notEqual root.db, null
     collection = root.db.collection "documents"
     collection.deleteMany doc, ( err, result ) ->
         assert.equal err, null
+        #assert.equal docs.length, result.result.n
+        #assert.equal docs.length, result.ops.length
         console.log "deleted #{result.result.n} documents from the document collection"
         
 documents = [{
@@ -45,14 +56,23 @@ documents = [{
         age:    34
         ssn:    "555-66-7777"
     }]
+    
+onedoc = [{
+        name:   "Jesse Frush"
+        age:    28
+        ssn:    "555-55-5555"
+    }]
 
 open_database()
 
 #setTimeout close_database, 1000        #setTimeout was necessary because the connection wasn"t yet open when this function was called.
 
-#setTimeout insert_documents.bind( null, documents ), 2000
-#setTimeout delete_documents.bind( root, { name: "Apu Dutta" } ), 2000
-setTimeout delete_documents.bind( root, documents[2] ), 2000
+#setTimeout insert_documents.bind( null, onedoc ), 2000
+setTimeout insert_documents.bind( null, documents ), 2000
+#setTimeout insert_documents.bind( null, documents[0] ), 2000               #this doesn't work because insertMany must be an array of items
+#setTimeout delete_documents.bind( root, { name: "Apu Dutta" } ), 2000      #this works
+#setTimeout delete_documents.bind( root, { "name": "Jesse Frush" } ), 2000  #so does this
+#setTimeout delete_documents.bind( root, documents[2] ), 2000
     
 
 setTimeout close_database, 10000
